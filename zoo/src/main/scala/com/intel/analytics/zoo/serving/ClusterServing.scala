@@ -19,7 +19,7 @@ package com.intel.analytics.zoo.serving
 
 
 import com.intel.analytics.zoo.pipeline.inference.InferenceModel
-import com.intel.analytics.zoo.serving.engine.{FlinkInference, FlinkRedisSink, FlinkRedisSource}
+import com.intel.analytics.zoo.serving.engine.{FlinkInference, FlinkRedisSink, FlinkRedisSource, FlinkRedisXStreamSink}
 import com.intel.analytics.zoo.serving.utils.{ClusterServingHelper, ConfigParser, Conventions, DeprecatedUtils}
 import org.apache.flink.core.execution.JobClient
 import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment, _}
@@ -60,7 +60,7 @@ object ClusterServing {
     streamingEnv.setParallelism(helper.modelParallelism)
     streamingEnv.addSource(new FlinkRedisSource(helper))
       .map(new FlinkInference(helper))
-      .addSink(new FlinkRedisSink(helper))
+      .addSink(new FlinkRedisXStreamSink(helper))
 
     logger.info(s"Cluster Serving Flink job graph details \n${streamingEnv.getExecutionPlan}")
     streamingEnv.executeAsync()

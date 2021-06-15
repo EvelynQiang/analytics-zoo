@@ -69,7 +69,7 @@ object Frontend2 extends Supportive with EncryptSupportive {
       }
       val actorName = s"redis-getter"
       val ioActor = timing(s"$actorName initialized.")() {
-        val getterProps = Props(new RedisIOActor(jedisPool = jedisPool))
+        val getterProps = Props(new RedisIOActorXStream(jedisPool = jedisPool))
         system.actorOf(getterProps, name = actorName)
       }
 

@@ -17,6 +17,7 @@
 package com.intel.analytics.zoo.serving.http
 
 import java.util
+import java.util.AbstractMap.SimpleEntry
 import java.util.{HashMap, UUID}
 
 import akka.actor.{Actor, ActorRef}
@@ -25,7 +26,7 @@ import com.intel.analytics.zoo.serving.serialization.{ArrowDeserializer, StreamS
 import com.intel.analytics.zoo.serving.pipeline.RedisUtils
 import com.intel.analytics.zoo.serving.utils.Conventions
 import org.slf4j.LoggerFactory
-import redis.clients.jedis.JedisPool
+import redis.clients.jedis.{JedisPool, StreamEntry, StreamEntryID}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -87,5 +88,24 @@ class RedisIOActor(redisOutputQueue: String = Conventions.RESULT_PREFIX +
     resultSet.asScala.foreach(key => jedis.del(key))
     res
   }
-
 }
+
+class RedisIOActorXStream(redisOutputQueue: String = Conventions.RESULT_PREFIX +
+  Conventions.SERVING_STREAM_DEFAULT_NAME,
+                          redisInputQueue: String = "serving_stream",
+                          jedisPool: JedisPool = null) extends RedisIOActor {
+  override def dequeue(queue: String): mutable.Set[(String, util.Map[String, String])] = {
+    val res = mutable.Set[(String, util.Map[String, String])]()
+    val response = jedis.xread(2147483647, 0, new SimpleEntry(queue, new StreamEntryID()))
+    for (streamMessages <- response.asScala) {
+      val entries = streamMessages.getValue.asScala
+      entries.map(e => {
+        res.add((queue + ":" + e.getFields.get("uri"), Map[String, String]("value" -> e.getFields.get("data")).asJava))
+        jedis.xdel(queue, e.getID)
+      })
+    }
+    res
+  }
+}
+
+

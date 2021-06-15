@@ -16,6 +16,8 @@
 
 package com.intel.analytics.zoo.serving.pipeline
 
+import java.util.HashMap
+
 import com.intel.analytics.zoo.serving.ClusterServing
 import com.intel.analytics.zoo.serving.utils.{ClusterServingHelper, Conventions}
 
@@ -111,10 +113,13 @@ object RedisUtils {
     val hValue = Map[String, String]("value" -> value).asJava
     ppl.hmset(hKey, hValue)
   }
-  def writeXstream(ppl: Pipeline, key: String, value: String, name: String): Unit = {
-    val streamKey = Conventions.RESULT_PREFIX + name + ":" + key
-    val streamValue = Map[String, String]("value" -> value).asJava
-    ppl.xadd(streamKey, StreamEntryID.NEW_ENTRY, streamValue)
+  def writeXstream(ppl: Pipeline, id: String, inputs: String, name: String): Unit = {
+    val streamKey = Conventions.RESULT_PREFIX + name
+    val streamValue = new HashMap[String, String]()
+    streamValue.put("uri", id)
+    streamValue.put("data", inputs)
+    streamValue.put("serde", "stream")
+    ppl.xadd(streamKey, null, streamValue)
   }
   def initializeRedis(): Unit = {
     val params = ClusterServing.helper
